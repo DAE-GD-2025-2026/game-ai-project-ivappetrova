@@ -14,6 +14,10 @@ ASteeringAgent::ASteeringAgent()
 void ASteeringAgent::BeginPlay()
 {
 	Super::BeginPlay();
+
+	OriginalMaxLinearSpeed = GetMaxLinearSpeed();
+
+	//PrimaryActorTick.TickGroup = TG_PostUpdateWork;
 }
 
 void ASteeringAgent::BeginDestroy()

@@ -20,6 +20,34 @@ SteeringOutput Flee::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 	SteeringOutput steering{};
 
 	steering.LinearVelocity = Agent.GetPosition() - Target.Position;
-	//Steering.LinearVleocity.Normalize(); // I dont need this cuz the tick function -> addmovementinput function normalizes it automatically
+	return steering;
+}
+
+//ARRIVE
+//*******
+SteeringOutput Arrive::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
+{
+	SteeringOutput steering{};
+	FVector2D toTarget = Target.Position - Agent.GetPosition();
+	float distance = toTarget.Size();
+
+	// Adjust speed based on distance
+	if (distance < steering.TargetRadius)
+	{
+		Agent.SetMaxLinearSpeed(0.f);
+		steering.LinearVelocity = FVector2D::ZeroVector;
+	}
+	else if (distance < steering.SlowRadius)
+	{
+		float speedFactor = distance / steering.SlowRadius;
+		Agent.SetMaxLinearSpeed(Agent.GetOriginalMaxLinearSpeed() * speedFactor);
+		steering.LinearVelocity = toTarget;
+	}
+	else
+	{
+		Agent.SetMaxLinearSpeed(Agent.GetOriginalMaxLinearSpeed());
+		steering.LinearVelocity = toTarget;
+	}
+
 	return steering;
 }
