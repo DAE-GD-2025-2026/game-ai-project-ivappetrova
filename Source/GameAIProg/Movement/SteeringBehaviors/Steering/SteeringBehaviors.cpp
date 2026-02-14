@@ -6,10 +6,26 @@
 // TODO: Do the Week01 assignment :^)
 SteeringOutput Seek::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 {
-	SteeringOutput steering{};
+	//SteeringOutput steering{};
 
-	steering.LinearVelocity = Target.Position - Agent.GetPosition();
-	//Steering.LinearVleocity.Normalize(); // I dont need this cuz the tick function -> addmovementinput function normalizes it automatically
+	//steering.LinearVelocity = Target.Position - Agent.GetPosition();
+
+	//////Steering.LinearVleocity.Normalize(); // I dont need this cuz the tick function -> addmovementinput function normalizes it automatically
+	//return steering;
+
+	SteeringOutput steering{};
+	FVector2D toTarget = Target.Position - Agent.GetPosition();
+	float distance = toTarget.Size();
+
+	if (distance < 1.f)
+	{
+		steering.LinearVelocity = FVector2D::ZeroVector;
+	}
+	else
+	{
+		steering.LinearVelocity = toTarget;
+	}
+
 	return steering;
 }
 
@@ -28,26 +44,30 @@ SteeringOutput Flee::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 SteeringOutput Arrive::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 {
 	SteeringOutput steering{};
+
 	FVector2D toTarget = Target.Position - Agent.GetPosition();
 	float distance = toTarget.Size();
 
-	// Adjust speed based on distance
 	if (distance < steering.TargetRadius)
 	{
-		Agent.SetMaxLinearSpeed(0.f);
 		steering.LinearVelocity = FVector2D::ZeroVector;
+		return steering;
 	}
-	else if (distance < steering.SlowRadius)
+
+	float targetSpeed;
+
+	if (distance > steering.SlowRadius)
 	{
-		float speedFactor = distance / steering.SlowRadius;
-		Agent.SetMaxLinearSpeed(Agent.GetOriginalMaxLinearSpeed() * speedFactor);
-		steering.LinearVelocity = toTarget;
+		targetSpeed = Agent.GetMaxLinearSpeed();
 	}
 	else
 	{
-		Agent.SetMaxLinearSpeed(Agent.GetOriginalMaxLinearSpeed());
-		steering.LinearVelocity = toTarget;
+		targetSpeed = Agent.GetMaxLinearSpeed() * (distance / steering.SlowRadius);
 	}
+
+	FVector2D desiredVelocity{ toTarget.GetSafeNormal() * targetSpeed };
+
+	steering.LinearVelocity = desiredVelocity;
 
 	return steering;
 }
@@ -60,10 +80,10 @@ SteeringOutput Face::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 
 	FVector2D toTarget = Target.Position - Agent.GetPosition();
 	float distance = toTarget.Size();
-	float orbitRadius = 200.f; 
+	const float ORBIT_RADIUS{200.f};
 
 	// Move towards target if far away, orbit if close
-	if (distance > orbitRadius)
+	if (distance > ORBIT_RADIUS)
 	{
 		// Move towards target
 		steering.LinearVelocity = toTarget;
@@ -108,6 +128,29 @@ SteeringOutput Pursuit::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 
 	// seek the future position
 	steering.LinearVelocity = futurePosition - Agent.GetPosition();
+
+	return steering;
+}
+
+//EVADE
+//*******
+SteeringOutput Evade::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
+{
+	SteeringOutput steering{};
+
+	FVector2D distanceToTarget = Target.Position - Agent.GetPosition();
+
+	// callculate time to reach the target
+	float d = distanceToTarget.Size();
+	float v = Agent.GetMaxLinearSpeed();
+	float t = d / (v + 0.01f);
+
+	// calculate future position of the target
+	auto targetVelocity = Target.LinearVelocity;
+	auto futurePosition = Target.Position + targetVelocity * t;
+
+	// seek the future position
+	steering.LinearVelocity = Agent.GetPosition() - futurePosition;
 
 	return steering;
 }

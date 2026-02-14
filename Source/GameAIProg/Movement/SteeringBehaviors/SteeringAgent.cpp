@@ -13,8 +13,8 @@ ASteeringAgent::ASteeringAgent()
 // Called when the game starts or when spawned
 void ASteeringAgent::BeginPlay()
 {
+	
 	Super::BeginPlay();
-
 	OriginalMaxLinearSpeed = GetMaxLinearSpeed();
 }
 

@@ -222,6 +222,8 @@ void ALevel_SteeringBehaviors::RemoveAgent(unsigned int Index)
 void ALevel_SteeringBehaviors::SetAgentBehavior(ImGui_Agent& Agent)
 {
 	Agent.Behavior.reset();
+
+	Agent.Agent->SetMaxLinearSpeed(Agent.Agent->GetOriginalMaxLinearSpeed());
 	
 	switch (static_cast<BehaviorTypes>(Agent.SelectedBehavior))
 	{
@@ -242,6 +244,8 @@ void ALevel_SteeringBehaviors::SetAgentBehavior(ImGui_Agent& Agent)
 		Agent.Behavior = std::make_unique<Pursuit>();
 		break;
 	case BehaviorTypes::Evade:
+		Agent.Behavior = std::make_unique<Evade>();
+		break;
 	case BehaviorTypes::Wander:
 		Agent.Behavior = std::make_unique<Seek>();
 		break;

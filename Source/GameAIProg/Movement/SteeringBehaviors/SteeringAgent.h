@@ -55,7 +55,6 @@ public:
 protected:
 
 	ISteeringBehavior* SteeringBehavior{nullptr}; // non-owning
-	float OriginalMaxLinearSpeed{};
 	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -71,5 +70,8 @@ public:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	void SetSteeringBehavior(ISteeringBehavior* NewSteeringBehavior);
+
+	// for Arrive 
+	float OriginalMaxLinearSpeed{};
 	float GetOriginalMaxLinearSpeed() const { return OriginalMaxLinearSpeed; }
 };
