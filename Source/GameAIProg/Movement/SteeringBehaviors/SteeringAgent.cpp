@@ -16,8 +16,6 @@ void ASteeringAgent::BeginPlay()
 	Super::BeginPlay();
 
 	OriginalMaxLinearSpeed = GetMaxLinearSpeed();
-
-	//PrimaryActorTick.TickGroup = TG_PostUpdateWork;
 }
 
 void ASteeringAgent::BeginDestroy()
@@ -33,7 +31,17 @@ void ASteeringAgent::Tick(float DeltaTime)
 	if (SteeringBehavior)
 	{
 		SteeringOutput output = SteeringBehavior->CalculateSteering(DeltaTime, *this);
+
+		// Apply LinearVelocity
 		AddMovementInput(FVector{output.LinearVelocity, 0.f});
+
+		// Apply AngularVelocity
+		if (FMath::Abs(output.AngularVelocity) > 0.01f)
+		{
+			FRotator newRotation = GetActorRotation();
+			newRotation.Yaw += output.AngularVelocity * DeltaTime;
+			SetActorRotation(newRotation);
+		}
 	}
 }
 

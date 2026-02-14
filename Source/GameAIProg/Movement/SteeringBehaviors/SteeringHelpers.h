@@ -77,8 +77,9 @@ struct SteeringOutput final
 	float AngularVelocity{0.f};
 	bool IsValid{true};
 
-	float SlowRadius{ 1000.f }; // For Arrive behavior, how close the agent needs to be to the target before it starts to slow down
-	float TargetRadius{ 200.f }; // For Arrive behavior, how close the agent needs to be to the target before it considers itself "arrived"
+	// Arrive extra members
+	float SlowRadius{ 1000.f }; 
+	float TargetRadius{ 200.f };
 
 	SteeringOutput(const FVector2D& linearVelocity = {0.f, 0.f}, float angularVelocity = {0.f})
 	{
