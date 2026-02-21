@@ -10,7 +10,7 @@ SteeringOutput Cohesion::CalculateSteering(float deltaT, ASteeringAgent& pAgent)
 {
 	SteeringOutput steering{};
 
-	/*steering.LinearVelocity = pFlock->GetAverageNeighborPos() - pAgent.GetPosition();*/
+	steering.LinearVelocity = pFlock->GetAverageNeighborPos() - pAgent.GetPosition();
 
 	return steering;
 }
@@ -21,26 +21,25 @@ SteeringOutput Separation::CalculateSteering(float deltaT, ASteeringAgent& pAgen
 {
 	SteeringOutput steering{};
 
-	//// Need to accumulate weighted flee from each neighbor
-	//FVector2D totalForce = FVector2D::ZeroVector;
+	FVector2D totalForce = FVector2D::ZeroVector;
 
-	//const TArray<ASteeringAgent*>& neighbors = pFlock->GetNeighbors();
-	//int nrNeighbors = pFlock->GetNrOfNeighbors();
+	const TArray<ASteeringAgent*>& neighbors = pFlock->GetNeighbors();
+	int nrNeighbors = pFlock->GetNrOfNeighbors();
 
-	//for (int index{}; index < nrNeighbors; ++index)
-	//{
-	//	FVector2D toAgent = pAgent.GetPosition() - neighbors[index]->GetPosition();
-	//	float distance = toAgent.Size();
+	for (int index{}; index < nrNeighbors; ++index)
+	{
+		FVector2D toAgent = pAgent.GetPosition() - neighbors[index]->GetPosition();
+		float distance = toAgent.Size();
 
-	//	if (distance > 0.01f) // Avoid division by zero
-	//	{
-	//		// Inversely proportional: closer = stronger
-	//		toAgent.Normalize();
-	//		totalForce += toAgent / distance;
-	//	}
-	//}
+		if (distance > 0.01f) // Avoid division by zero
+		{
+			// closer = stronger
+			toAgent.Normalize();
+			totalForce += toAgent / distance;
+		}
+	}
 
-	//steering.LinearVelocity = totalForce;
+	steering.LinearVelocity = totalForce;
 	return steering;
 }
 
@@ -51,7 +50,7 @@ SteeringOutput Allignment::CalculateSteering(float deltaT, ASteeringAgent& pAgen
 {
 	SteeringOutput steering{};
 
-	/*steering.LinearVelocity = pFlock->GetAverageNeighborVelocity();*/
+	steering.LinearVelocity = pFlock->GetAverageNeighborVelocity();
 
 	return steering;
 }

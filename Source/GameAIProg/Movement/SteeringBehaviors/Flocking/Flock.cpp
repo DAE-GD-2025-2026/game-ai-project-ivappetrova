@@ -17,10 +17,8 @@ Flock::Flock(
 	Agents.SetNum(FlockSize);
 	pNeighbors.SetNum(FlockSize - 1);
 
-	// ==========================================
-	// STEP 2: Blended Steering - behavior setup
-	// ==========================================
-	/*pSeparationBehavior = std::make_unique<Separation>(this);
+	// Blended steering
+	pSeparationBehavior = std::make_unique<Separation>(this);
 	pCohesionBehavior = std::make_unique<Cohesion>(this);
 	pAlignmentBehavior = std::make_unique<Allignment>(this);
 	pSeekBehavior = std::make_unique<Seek>();
@@ -33,7 +31,7 @@ Flock::Flock(
 	weightedBehaviors.push_back({ pSeekBehavior.get(), 0.2f });
 	weightedBehaviors.push_back({ pWanderBehavior.get(), 0.5f });
 
-	pBlendedSteering = std::make_unique<BlendedSteering>(weightedBehaviors);*/
+	pBlendedSteering = std::make_unique<BlendedSteering>(weightedBehaviors);
 	// ==========================================
 
 	// ==========================================
@@ -57,14 +55,14 @@ Flock::Flock(
 
 		Agents[index] = pWorld->SpawnActor<ASteeringAgent>(AgentClass, SpawnLocation, SpawnRotation);
 
-		//if (Agents[index])
-		//{
-		//	// STEP 2: assign blended steering
-		//	Agents[index]->SetSteeringBehavior(pBlendedSteering.get());
+		if (Agents[index])
+		{
+			// STEP 2: assign blended steering
+			Agents[index]->SetSteeringBehavior(pBlendedSteering.get());
 
 		//	// STEP 3: swap to priority steering instead
 		//	// Agents[index]->SetSteeringBehavior(pPrioritySteering.get());
-		//}
+		}
 	}
 }
 
@@ -77,7 +75,6 @@ void Flock::Tick(float DeltaTime)
 {
 	for (ASteeringAgent* agent : Agents)
 	{
-		// STEP 1: RegisterNeighbors - fills pNeighbors memory pool for this agent
 		RegisterNeighbors(agent);
 
 		if (agent == nullptr) continue;
@@ -168,10 +165,8 @@ void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
 		ImGui::Separator();
 		ImGui::Spacing();
 
-		// ==========================================
-		// STEP 2: ImGui weight sliders
-		// ==========================================
-		/*ImGui::Text("Behavior Weights");
+		// Weights for blended steering behaviors
+		ImGui::Text("Behavior Weights");
 		ImGui::Spacing();
 
 		auto& weightedBehaviors = pBlendedSteering->GetWeightedBehaviorsRef();
@@ -198,8 +193,7 @@ void Flock::ImGuiRender(ImVec2 const& WindowPos, ImVec2 const& WindowSize)
 			{
 				ImGui::SliderFloat("Wander", &wb.Weight, 0.0f, 2.0f);
 			}
-		}*/
-		// ==========================================
+		}
 
 		ImGui::Spacing();
 		ImGui::SliderFloat("Neighborhood Radius", &NeighborhoodRadius, 50.0f, 500.0f);
