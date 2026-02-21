@@ -19,6 +19,21 @@ void ALevel_Flocking::BeginPlay()
 	TrimWorld->SetTrimWorldSize(3000.f);
 	TrimWorld->bShouldTrimWorld = true;
 
+	FVector SpawnLocation(0.f, 0.f, 200.f);
+	FRotator SpawnRotation(0.f, 0.f, 0.f);
+	pAgentToEvade = GetWorld()->SpawnActor<ASteeringAgent>(SteeringAgentClass, SpawnLocation, SpawnRotation);
+
+	if (pAgentToEvade)
+	{
+		// Make it bigger so it's visually distinct from the flock
+		pAgentToEvade->SetActorScale3D(FVector(3.f, 3.f, 3.f));
+
+		// Give it a wander behavior so it moves around
+		pEvadeAgentWander = std::make_unique<Wander>();
+		pAgentToEvade->SetSteeringBehavior(pEvadeAgentWander.get());
+	}
+
+
 	pFlock = TUniquePtr<Flock>(
 		new Flock(
 			GetWorld(),
@@ -34,6 +49,11 @@ void ALevel_Flocking::BeginPlay()
 void ALevel_Flocking::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (pAgentToEvade)
+	{
+		pAgentToEvade->Tick(DeltaTime);
+	}
 
 	pFlock->ImGuiRender(WindowPos, WindowSize);
 	pFlock->Tick(DeltaTime);

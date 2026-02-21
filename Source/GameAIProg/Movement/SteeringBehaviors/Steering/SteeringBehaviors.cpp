@@ -160,10 +160,19 @@ SteeringOutput Evade::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 	SteeringOutput steering{};
 
 	FVector2D toTarget{ Target.Position - Agent.GetPosition() };
+
+	// Out of range - return invalid so PrioritySteering falls through to blended
+	if (toTarget.Size() > m_EvadeRadius)
+	{
+		steering.IsValid = false;
+		return steering;
+	}
+
 	float t = toTarget.Size() / (Agent.GetMaxLinearSpeed() + 0.01f);
 	FVector2D futurePos{ Target.Position + Target.LinearVelocity * t };
 
 	steering.LinearVelocity = Agent.GetPosition() - futurePos;
+	steering.IsValid = true; // <-- THIS is the critical line
 
 	// DEBUG
 	if (Agent.GetDebugRenderingEnabled())

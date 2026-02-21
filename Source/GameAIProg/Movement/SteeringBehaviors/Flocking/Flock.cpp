@@ -32,18 +32,15 @@ Flock::Flock(
 	weightedBehaviors.push_back({ pWanderBehavior.get(), 0.5f });
 
 	pBlendedSteering = std::make_unique<BlendedSteering>(weightedBehaviors);
-	// ==========================================
-
-	// ==========================================
-	// STEP 3: Priority Steering - evade setup
-	// ==========================================
-	// pEvadeBehavior = std::make_unique<Evade>();
-	// pPrioritySteering = std::make_unique<PrioritySteering>(std::vector<ISteeringBehavior*>
-	// {
-	// 	pEvadeBehavior.get(),
-	// 	pBlendedSteering.get()
-	// });
-	// ==========================================
+	
+	// Priority steering
+	 pEvadeBehavior = std::make_unique<Evade>();
+	 pEvadeBehavior->SetEvadeRadius(700.f);
+	 pPrioritySteering = std::make_unique<PrioritySteering>(std::vector<ISteeringBehavior*>
+	 {
+	 	pEvadeBehavior.get(),
+	 	pBlendedSteering.get()
+	 });
 
 	// Spawn agents
 	for (int index{}; index < FlockSize; ++index)
@@ -57,11 +54,11 @@ Flock::Flock(
 
 		if (Agents[index])
 		{
-			// STEP 2: assign blended steering
-			Agents[index]->SetSteeringBehavior(pBlendedSteering.get());
+			// Assign blended steering
+			//Agents[index]->SetSteeringBehavior(pBlendedSteering.get());
 
-		//	// STEP 3: swap to priority steering instead
-		//	// Agents[index]->SetSteeringBehavior(pPrioritySteering.get());
+			// Swap to priority steering instead
+			Agents[index]->SetSteeringBehavior(pPrioritySteering.get());
 		}
 	}
 }
@@ -81,15 +78,15 @@ void Flock::Tick(float DeltaTime)
 		agent->Tick(DeltaTime);
 	}
 
-	// STEP 3: update evade target each tick
-	// if (pAgentToEvade && pEvadeBehavior)
-	// {
-	// 	FTargetData evadeTarget;
-	// 	evadeTarget.Position = FVector2D(pAgentToEvade->GetPosition());
-	// 	FVector vel = pAgentToEvade->GetVelocity();
-	// 	evadeTarget.LinearVelocity = FVector2D(vel.X, vel.Y);
-	// 	pEvadeBehavior->SetTarget(evadeTarget);
-	// }
+	// Update evade target
+	if (pAgentToEvade && pEvadeBehavior)
+	{
+		FTargetData evadeTarget;
+		evadeTarget.Position = pAgentToEvade->GetPosition(); // use GetPosition() not GetActorLocation()
+		FVector vel = pAgentToEvade->GetVelocity();
+		evadeTarget.LinearVelocity = FVector2D(vel.X, vel.Y);
+		pEvadeBehavior->SetTarget(evadeTarget);
+	}
 
 	RenderDebug();
 }
@@ -276,9 +273,9 @@ FVector2D Flock::GetAverageNeighborVelocity() const
 
 void Flock::SetTarget_Seek(FSteeringParams const& Target)
 {
-	//FTargetData targetData;
-	//targetData.Position = Target.Position;
-	//targetData.Orientation = Target.Orientation;
+	FTargetData targetData;
+	targetData.Position = Target.Position;
+	targetData.Orientation = Target.Orientation;
 
-	//pSeekBehavior->SetTarget(targetData);
+	pSeekBehavior->SetTarget(targetData);
 }
