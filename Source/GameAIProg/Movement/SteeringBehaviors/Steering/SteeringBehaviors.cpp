@@ -85,6 +85,11 @@ SteeringOutput Arrive::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 	return steering;
 }
 
+void Arrive::SetTargetRadius(float newRadius)
+{
+	targetRadius = newRadius;
+}
+
 ////////////////// FACE /////////////////
 SteeringOutput Face::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 {
