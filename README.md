@@ -1,5 +1,5 @@
 # Algorithms 2- Assignment 1
-Made by Iva Petrova 
+Made by Iva Petrova,
 group: 2DAE11
 
 # The task:
