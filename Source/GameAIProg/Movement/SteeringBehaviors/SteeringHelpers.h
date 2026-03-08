@@ -77,10 +77,6 @@ struct SteeringOutput final
 	float AngularVelocity{0.f};
 	bool IsValid{true};
 
-	// Arrive extra members
-	float SlowRadius{ 1000.f }; 
-	float TargetRadius{ 200.f };
-
 	SteeringOutput(const FVector2D& linearVelocity = {0.f, 0.f}, float angularVelocity = {0.f})
 	{
 		LinearVelocity = linearVelocity;

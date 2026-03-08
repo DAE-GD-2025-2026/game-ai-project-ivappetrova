@@ -1,3 +1,7 @@
-# Game AI Project
+# Algorithms 2- Assignment 1
+Made by Iva Petrova 
+group: 2DAE11
 
-Feel free to edit the readme to your liking
+# The task:
+- Flocking (week02)
+- Spacial partitioning (week03)
