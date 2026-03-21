@@ -35,6 +35,9 @@ namespace GameAI
 		
 		void RenderGraph(Graph const & Graph) const;
 
+		// Helper
+		void SetWorld(UWorld* InWorld) { World = InWorld; }
+
 	private:
 		UWorld* World;
 		GraphRenderOptions Options{};

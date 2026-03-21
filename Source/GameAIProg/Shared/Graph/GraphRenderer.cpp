@@ -26,7 +26,7 @@ namespace GameAI
 			}
 		}
 
-		if (Options.bDrawNodes)
+		if (Options.bDrawConnections)
 		{
 			for (auto& Connection : Graph.GetConnections())
 			{
