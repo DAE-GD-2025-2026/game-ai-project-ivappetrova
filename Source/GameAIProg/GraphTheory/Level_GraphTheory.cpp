@@ -37,7 +37,7 @@ void ALevel_GraphTheory::BeginPlay()
 
 
 	// set the world for the renderer so it can draw debug shapes
-	Renderer.SetWorld(GetWorld());
+	Renderer = new GraphRenderer{ GetWorld() };
 	
 	// Make the view orthogonal for less perspective issues
 	if (AGameAISpectator* Player = Cast<AGameAISpectator>(PlayerController->GetPawnOrSpectator()); Player)
@@ -45,12 +45,12 @@ void ALevel_GraphTheory::BeginPlay()
 		Player->SetCameraProjection(ECameraProjectionMode::Orthographic);
 	}
 	
-	// TODO Make the graph and a couple connected nodes here...
-	int NodeA = Graph.AddNode(std::make_unique<Node>(FVector2D{ 0.f,  200.f })); // top
-	int NodeB = Graph.AddNode(std::make_unique<Node>(FVector2D{ -200.f,    0.f })); // left
-	int NodeC = Graph.AddNode(std::make_unique<Node>(FVector2D{ 200.f,    0.f })); // right
+	//// TODO Make the graph and a couple connected nodes here...
+	int NodeA = Graph.AddNode(std::make_unique<Node>(FVector2D{ 200.f,  0.f })); // top
+	int NodeB = Graph.AddNode(std::make_unique<Node>(FVector2D{ 0.f,    -200.f })); // left
+	int NodeC = Graph.AddNode(std::make_unique<Node>(FVector2D{ 0.f,    200.f })); // right
 	int NodeD = Graph.AddNode(std::make_unique<Node>(FVector2D{ -200.f, -200.f })); // bottom-left
-	int NodeE = Graph.AddNode(std::make_unique<Node>(FVector2D{ 200.f, -200.f })); // bottom-right
+	int NodeE = Graph.AddNode(std::make_unique<Node>(FVector2D{ -200.f, 200.f })); // bottom-right
 
 	Graph.AddConnection(NodeA, NodeB);
 	Graph.AddConnection(NodeA, NodeC);
@@ -59,17 +59,30 @@ void ALevel_GraphTheory::BeginPlay()
 	Graph.AddConnection(NodeB, NodeE);
 	Graph.AddConnection(NodeC, NodeE);
 	Graph.AddConnection(NodeD, NodeE);
+
+	Graph.SetConnectionCostsToDistances();
 	
 	// Spawn the Agent
 	Agent = GetWorld()->SpawnActor<ASteeringAgent>(SteeringAgentClass,
 		FVector{ 0, 0, 90 }, FRotator::ZeroRotator);
 
 	Agent->SetSteeringBehavior(&PathFollow);
+
+	// Calculate initial path
+	EulerianPath ep{ &Graph };
+	Eulerianity eulerianity{};
+	std::vector<Node*> trail = ep.FindPath(eulerianity);
+	if (eulerianity != Eulerianity::notEulerian && !trail.empty())
+	{
+		UpdateAgentPath(trail);
+	}
 }
 
 void ALevel_GraphTheory::BeginDestroy()
 {
 	Super::BeginDestroy();
+	delete Renderer;
+	Renderer = nullptr;
 }
 
 void ALevel_GraphTheory::Tick(float DeltaTime)
@@ -115,11 +128,13 @@ void ALevel_GraphTheory::Tick(float DeltaTime)
 	}
 #pragma endregion UI
 	
-	Renderer.RenderGraph(Graph);
+	if (Renderer) Renderer->RenderGraph(Graph);
 	
 	// TODO Check if the graph has updated
 	if (PlayerGraphEditor->HasGraphUpdated())
 	{
+		Graph.SetConnectionCostsToDistances();
+
 		// TODO if so, run the EulerianPath algorithm
 		EulerianPath ep{ &Graph };
 		Eulerianity eulerianity{};
@@ -130,13 +145,20 @@ void ALevel_GraphTheory::Tick(float DeltaTime)
 		{
 			UpdateAgentPath(trail);
 		}
+		else
+		{
+			// Graph is no longer Eulerian — stop the agent
+			std::vector<FVector2D> emptyPath{};
+			PathFollow.SetPath(emptyPath);
+		}
 	}
+
 }
 
 void ALevel_GraphTheory::UpdateAgentPath(std::vector<Node*> const& Trail)
 {
 	std::vector<FVector2D> path{};
-	
+
 	// TODO convert Node vector to positions vector
 	path.reserve(Trail.size());
 	for (Node* pNode : Trail)

@@ -152,7 +152,7 @@ namespace GameAI
 			int toId = pConn->GetToId();
 
 			// TODO Tip: use an index-based for-loop to find the correct index
-			for (size_t index{}; index < static_cast<int>(Nodes.size()); ++index)
+			for (size_t index{}; index < Nodes.size(); ++index)
 			{
 				if (Nodes[index]->GetId() == toId && !visited[index])
 				{

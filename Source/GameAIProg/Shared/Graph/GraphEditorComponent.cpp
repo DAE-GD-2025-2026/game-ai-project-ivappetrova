@@ -120,12 +120,14 @@ void UGraphEditorComponent::UpdateCurrentlyHoveredNode()
 
 void UGraphEditorComponent::UpdateNodeMovement()
 {
-	if (!bIsMovingNode)
-	{
-		return;
-	}
-	
-	EditedGraph->GetNode(CurrentlyHoveredNodeId)->SetPosition(FVector2D{LatestMousePos});
+	if (!bIsMovingNode) return;
+	if (CurrentlyHoveredNodeId == GameAI::Graphs::InvalidNodeId) return;
+	if (CurrentlyHoveredNodeId >= static_cast<int>(EditedGraph->GetNodes().size())) return;
+
+	auto& Node = EditedGraph->GetNode(CurrentlyHoveredNodeId);
+	if (!Node || Node->GetId() == GameAI::Graphs::InvalidNodeId) return;
+
+	Node->SetPosition(FVector2D{ LatestMousePos });
 }
 
 bool UGraphEditorComponent::GetEnhancedInput()

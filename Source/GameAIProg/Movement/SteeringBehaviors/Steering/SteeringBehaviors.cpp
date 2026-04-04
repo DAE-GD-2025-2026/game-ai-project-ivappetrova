@@ -57,8 +57,6 @@ SteeringOutput Arrive::CalculateSteering(float DeltaT, ASteeringAgent& Agent)
 	FVector2D toTarget{ Target.Position - Agent.GetPosition() };
 	float distance = toTarget.Size();
 
-	// Use the Arrive class members (targetRadius / slowRadius), NOT SteeringOutput defaults.
-	// SteeringOutput::TargetRadius / SlowRadius are only used internally for debug drawing here.
 	if (distance < targetRadius)
 	{
 		Agent.SetMaxLinearSpeed(0.f);
