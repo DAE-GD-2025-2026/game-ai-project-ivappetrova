@@ -1,7 +1,11 @@
-# Algorithms 2- Assignment 1
+# Algorithms 2- Assignments
 Made by Iva Petrova,
 group: 2DAE11
 
-# The task:
-- Flocking (week02)
-- Spacial partitioning (week03)
+## Assignment 1
+- Flocking (week 02)
+- Spacial partitioning (week 03)
+
+## Assignment 2
+- A* Pathfinding  (week 05)
+- Navigation Meshes (week 06)
