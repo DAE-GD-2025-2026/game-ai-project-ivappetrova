@@ -93,10 +93,20 @@ void ALevel_PathfindingAStar::Tick(float DeltaTime)
 	
 	UpdateImGui();
 	
+	GraphRenderOptions RenderOptions = Renderer->GetRenderOptions();
+	RenderOptions.bDrawNodes = bDrawGrid;
+	RenderOptions.bDrawNodeIds = bDrawNodeNumbers;
+	RenderOptions.bDrawConnections = bDrawConnections;
+	RenderOptions.bDrawConnectionWeights = bDrawConnectionsCosts;
+	Renderer->SetRenderOptions(RenderOptions);
+
 	Renderer->RenderGraph(*TerrainGraph);
-	TerrainGraph->DebugDrawCells(GetWorld());
 	TerrainGraph->DrawTerrain(GetWorld());
-	// TODO implement conditional debug draws
+
+	if (bDrawGrid)
+	{
+		TerrainGraph->DebugDrawCells(GetWorld());
+	}
 }
 
 void ALevel_PathfindingAStar::CalculatePath()
@@ -108,8 +118,8 @@ void ALevel_PathfindingAStar::CalculatePath()
 		&& PathStartNodeId != PathEndNodeId)
 	{
 		//Select (uncomment) BFS Pathfinding or A* Pathfinding
-		BFS pathfinder = BFS(TerrainGraph);
-		// AStar pathfinder = AStar(TerrainGraph, HeuristicFunction);
+		//BFS pathfinder = BFS(TerrainGraph);
+		AStar pathfinder = AStar(TerrainGraph, HeuristicFunction);
 		TerrainNode* const startNode = TerrainGraph->GetNodeAs<TerrainNode>(PathStartNodeId);
 		TerrainNode* const endNode = TerrainGraph->GetNodeAs<TerrainNode>(PathEndNodeId);
 
@@ -189,10 +199,10 @@ void ALevel_PathfindingAStar::UpdateImGui()
 		ImGui::Spacing();
 		
 		// TODO conditional debug draws
-		// ImGui::Checkbox("Grid", &bDrawGrid);
-		// ImGui::Checkbox("NodeNumbers", &bDrawNodeNumbers);
-		// ImGui::Checkbox("Connections", &bDrawConnections);
-		// ImGui::Checkbox("Connections Costs", &bDrawConnectionsCosts);
+		if (ImGui::Checkbox("Grid", &bDrawGrid)) {}
+		if (ImGui::Checkbox("Node Numbers", &bDrawNodeNumbers)) {}
+		if (ImGui::Checkbox("Connections", &bDrawConnections)) {}
+		if (ImGui::Checkbox("Connection Costs", &bDrawConnectionsCosts)) {}
 		if (ImGui::Combo("", &SelectedHeuristic, "Manhattan\0Euclidean\0SqEuclidean\0Octile\0Chebyshev", 4))
 		{
 			switch (SelectedHeuristic)

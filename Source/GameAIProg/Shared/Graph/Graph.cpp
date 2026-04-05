@@ -81,10 +81,12 @@ namespace GameAI
         Weight = NewWeight;
     }
 
-    Connection Connection::GetInverseCopy() const
-    {
-        return Connection{ToId, FromId};
-    }
+	Connection Connection::GetInverseCopy() const
+	{
+		Connection Inverse{ ToId, FromId };
+		Inverse.SetWeight(Weight);
+		return Inverse;
+	}
 
     bool Connection::operator==(const Connection& Other) const
     {

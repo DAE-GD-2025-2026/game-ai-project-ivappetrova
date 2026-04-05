@@ -22,8 +22,8 @@ namespace GameAI
 		bool bDrawHighlightedNodes{true}; // if true will prefer to draw the highlight than the node
 		
 		// Connections
-		bool bDrawConnections{true};
-		bool bDrawConnectionWeights{true};
+		bool bDrawConnections{};
+		bool bDrawConnectionWeights{};
 	};
 	
 	class GraphRenderer final
@@ -82,11 +82,6 @@ namespace GameAI
 		DrawDebugCircle(World, DrawTransform.ToMatrixNoScale(), Radius, Segments, Color, 
 			false, -1, 0, 3);
 
-		if (Options.bDrawNodeIds)
-		{
-			FString NodeId{FString::Printf(TEXT("%d"), static_cast<int>(Node.GetId()))};
-			DrawDebugString(World, DrawTransform.GetLocation(), NodeId,nullptr, FColor::White, 0);
-		}
 	}
 
 	template <typename NodeType> requires GameAI::is_drawable_node<NodeType>
@@ -108,11 +103,6 @@ namespace GameAI
 		DrawDebugSphere(World, DrawTransform.GetLocation(), Radius, Segments, Color, 
 			false, -1, 0, 3);
 
-		if (Options.bDrawNodeIds)
-		{
-			FString NodeId{FString::Printf(TEXT("%d"), static_cast<int>(Node.GetId()))};
-			DrawDebugString(World, DrawTransform.GetLocation(), NodeId,nullptr, FColor::White, 0);
-		}
 	}
 
 	template <typename ConnectionType>
@@ -142,10 +132,12 @@ namespace GameAI
 		// Draw weight
 		if (Options.bDrawConnectionWeights)
 		{
-			FVector Middle = End + (Start - End) / 2;
-			
-			FString WeightString{FString::Printf(TEXT("%d"), static_cast<int>(Connection.GetWeight()))};
-			DrawDebugString(World, Middle, WeightString,nullptr, FColor::White, 0);
+			if (Connection.GetFromId() < Connection.GetToId())
+			{
+				FVector Middle = End + (Start - End) / 2;
+				FString WeightString{ FString::Printf(TEXT("%.1f"), Connection.GetWeight()) };
+				DrawDebugString(World, Middle, WeightString, nullptr, FColor::Yellow, 0);
+			}
 		}
 	}
 }
