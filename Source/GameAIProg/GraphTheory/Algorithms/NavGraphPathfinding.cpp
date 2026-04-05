@@ -14,24 +14,81 @@ std::vector<FVector2D> NavMeshPathfinding::FindPath(const FVector2D& startPos, c
 	//Create the path to return
 	std::vector<FVector2D> finalPath{};
 
-	//Get the start and endTriangle
+	// A. Get start and end triangles
+	FVector2D startOutPos{}, endOutPos{};
+	TriPolygon const* pNavPoly = pNavGraph->GetNavPolygon();
 
-	//We have valid start/end triangles and they are not the same
-	//=> Start looking for a path
-	//Copy the graph
+	TriPolygon::Triangle const* pStartTriangle = pNavPoly->GetClosestTriangleToPosition(startPos, startOutPos);
+	TriPolygon::Triangle const* pEndTriangle = pNavPoly->GetClosestTriangleToPosition(endPos, endOutPos);
 
-	//Create Extra node for the Start Node (Agent's position
+	if (!pStartTriangle || !pEndTriangle)
+		return finalPath;
 
-	//Create extra node for the endNode
+	// Same triangle - direct path
+	if (pStartTriangle == pEndTriangle)
+	{
+		finalPath.push_back(startPos);
+		finalPath.push_back(endPos);
+		return finalPath;
+	}
 
-	//Run A star on new graph
+	// B. Clone the graph
+	std::unique_ptr<NavGraph> pClonedGraph = pNavGraph->Clone();
 
-	//Debug Visualisation
+	// C. Create start node and connect to edges of start triangle
+	auto pStartNode = std::make_unique<NavGraphNode>(startOutPos, -1);
+	int startNodeId = pClonedGraph->AddNode(std::move(pStartNode));
 
-	// Extra: Run optimiser on new graph (First check if everything works without SSFA!)
-	// debugPortals = SSFA::FindPortals(nodes, *pNavGraph->GetNavPolygon());
-	// finalPath = SSFA::OptimizePortals(debugPortals, *pNavGraph->GetNavPolygon());
-	
+	for (auto const& Edge : pStartTriangle->GetEdges())
+	{
+		int EdgeIdx = pNavPoly->FindEdgeIndex(Edge).value_or(-1);
+		int NodeId = pClonedGraph->GetNodeIdFromEdgeIndex(EdgeIdx);
+		if (NodeId != Graphs::InvalidNodeId)
+		{
+			float Cost = FVector2D::Distance(startOutPos,
+				pClonedGraph->GetNode(NodeId)->GetPosition());
+			auto NewConn = std::make_unique<Connection>(startNodeId, NodeId);
+			NewConn->SetWeight(Cost);
+			pClonedGraph->AddConnection(std::move(NewConn));
+		}
+	}
+
+	// D. Create end node and connect to edges of end triangle
+	auto pEndNode = std::make_unique<NavGraphNode>(endOutPos, -1);
+	int endNodeId = pClonedGraph->AddNode(std::move(pEndNode));
+
+	for (auto const& Edge : pEndTriangle->GetEdges())
+	{
+		int EdgeIdx = pNavPoly->FindEdgeIndex(Edge).value_or(-1);
+		int NodeId = pClonedGraph->GetNodeIdFromEdgeIndex(EdgeIdx);
+		if (NodeId != Graphs::InvalidNodeId)
+		{
+			float Cost = FVector2D::Distance(endOutPos,
+				pClonedGraph->GetNode(NodeId)->GetPosition());
+			auto NewConn = std::make_unique<Connection>(NodeId, endNodeId);
+			NewConn->SetWeight(Cost);
+			pClonedGraph->AddConnection(std::move(NewConn));
+		}
+	}
+
+	// E. Run A*
+	AStar pathfinder(pClonedGraph.get(), HeuristicFunctions::Euclidean);
+	Node* pStart = pClonedGraph->GetNode(startNodeId).get();
+	Node* pEnd = pClonedGraph->GetNode(endNodeId).get();
+	std::vector<Node*> nodePath = pathfinder.FindPath(pStart, pEnd);
+
+	// Debug positions
+	for (Node* pNode : nodePath)
+	{
+		debugNodePositions.push_back(pNode->GetPosition());
+	}
+
+	// Convert to positions
+	for (Node* pNode : nodePath)
+	{
+		finalPath.push_back(pNode->GetPosition());
+	}
+
 	return finalPath;
 }
 
