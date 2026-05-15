@@ -3,6 +3,11 @@
 
 #include "FSMComponent.h"
 
+#include "AIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "FSM.h"
+#include "Movement/SteeringBehaviors/SteeringAgent.h"
+
 
 // Sets default values for this component's properties
 UFSMComponent::UFSMComponent()
@@ -12,17 +17,20 @@ UFSMComponent::UFSMComponent()
 	PrimaryComponentTick.bCanEverTick = true;
 
 	// TODO Setup FSM
+	FSMInstance = std::make_unique<GameAI::FSM::FSM>();
 }
 
 
-void UFSMComponent::AddState(std::unique_ptr<GameAI::FSM::State>&& NewState)
+GameAI::FSM::State* UFSMComponent::AddState(std::unique_ptr<GameAI::FSM::State>&& NewState)
 {
-	// TODO
+	check(FSMInstance);
+	return FSMInstance->AddState(std::move(NewState));
 }
 
-void UFSMComponent::AddTransition(GameAI::FSM::State* From, GameAI::FSM::State* To, std::function<bool()> EvalFunc) const
+void UFSMComponent::AddTransition(GameAI::FSM::State* From, GameAI::FSM::State* To, std::function<bool()> Condition) const
 {
-	// TODO
+	check(FSMInstance);
+	FSMInstance->AddTransition(From, To, std::move(Condition));
 }
 
 // Called when the game starts
@@ -36,23 +44,62 @@ void UFSMComponent::BeginPlay()
 void UFSMComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-	// TODO
+	
+	if (!bIsRunning || !FSMInstance) return;
+
+	// Resolve agent and blackboard from my own AI controller
+	AAIController* Controller = Cast<AAIController>(GetOwner());
+	if (!Controller) return;
+
+	ASteeringAgent* Agent = Cast<ASteeringAgent>(Controller->GetPawn());
+	UBlackboardComponent* BB = Controller->GetBlackboardComponent();
+
+	if (Agent)
+	{
+		FSMInstance->Update(DeltaTime, *Agent, BB);
+	}
 }
 
 void UFSMComponent::StartLogic()
 {
 	Super::StartLogic();
 
-	// TODO
+	if (!FSMInstance) return;
+
+	AAIController* Controller = Cast<AAIController>(GetOwner());
+	if (!Controller) return;
+
+	ASteeringAgent* Agent = Cast<ASteeringAgent>(Controller->GetPawn());
+	UBlackboardComponent* BB = Controller->GetBlackboardComponent();
+
+	if (Agent)
+	{
+		FSMInstance->Start(*Agent, BB);
+		bIsRunning = true;
+	}
 }
 
 void UFSMComponent::StopLogic(const FString& Reason)
 {
-	// TODO
+	if (!FSMInstance) return;
+
+	AAIController* Controller = Cast<AAIController>(GetOwner());
+	if (!Controller) return;
+
+	ASteeringAgent* Agent = Cast<ASteeringAgent>(Controller->GetPawn());
+	UBlackboardComponent* BB = Controller->GetBlackboardComponent();
+
+	if (Agent)
+	{
+		FSMInstance->Stop(*Agent, BB);
+	}
+
+	bIsRunning = false;
 }
 
 bool UFSMComponent::IsRunning() const
 {
 	return bIsRunning;
 }
+
 

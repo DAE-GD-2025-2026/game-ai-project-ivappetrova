@@ -4,7 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Shared/Level_Base.h"
+#include "Movement/SteeringBehaviors/SteeringAgent.h"
+#include "DecisionMaking/FSM/States/BlackboardKeys.h"
 #include "Level_FSM.generated.h"
+
+class Seek;
+class UBlackboardComponent;
 
 UCLASS()
 class GAMEAIPROG_API ALevel_FSM : public ALevel_Base
@@ -12,17 +17,43 @@ class GAMEAIPROG_API ALevel_FSM : public ALevel_Base
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this actor's properties
 	ALevel_FSM();
-
-	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 private:
+	// Agents
 	UPROPERTY()
-	ASteeringAgent* Agent{nullptr}; // ref
+	ASteeringAgent* Guard{ nullptr };
+
+	UPROPERTY()
+	ASteeringAgent* Thief{ nullptr };
+
+	// Guard perception config 
+	UPROPERTY(EditAnywhere, Category = "FSM|Guard")
+	float DetectionRadius{ 400.f };
+
+	UPROPERTY(EditAnywhere, Category = "FSM|Guard")
+	float SearchTimeout{ 8.f };
+
+	// Patrol route 
+	UPROPERTY(EditAnywhere, Category = "FSM|Patrol")
+	TArray<FVector2D> PatrolWaypoints;
+
+	// Thief steering 
+	Seek* ThiefSeek{ nullptr };
+	TUniquePtr<Seek> ThiefSeekOwned;
+
+	// Setup 
+	void SetupGuard();
+	void SetupThief();
+	void WritePatrolWaypointsToBlackboard(UBlackboardComponent* BB) const;
+	void DrawDebug() const;
+
+	// Transition predicates
+	bool IsTargetVisible() const;
+	bool IsTargetNotVisible() const;
+	bool IsSearchingTooLong() const;
 };
