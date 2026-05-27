@@ -20,27 +20,27 @@ namespace GameAI::FSM
     if (m_Waypoints.IsEmpty()) return;
 
     m_WaypointIndex = m_WaypointIndex % m_Waypoints.Num();
-    FVector2D Target = m_Waypoints[m_WaypointIndex];
+    FVector2D target = m_Waypoints[m_WaypointIndex];
 
-    FTargetData TargetData{};
-    TargetData.Position = Target;
-    m_Seek.SetTarget(TargetData);
+    FTargetData targetData{};
+    targetData.Position = target;
+    m_Seek.SetTarget(targetData);
 
-    FVector2D CurrentPos = Agent.GetPosition();
+    FVector2D currentPos = Agent.GetPosition();
 
     // Arrival check
-    float DistSq = FVector2D::DistSquared(CurrentPos, Target);
-    if (DistSq < m_ArrivalRadius * m_ArrivalRadius)
+    float distSq = FVector2D::DistSquared(currentPos, target);
+    if (distSq < m_ArrivalRadius * m_ArrivalRadius)
     {
         m_WaypointIndex = (m_WaypointIndex + 1) % m_Waypoints.Num();
         m_StuckTimer = 0.f;
-        m_LastPosition = CurrentPos;
+        m_LastPosition = currentPos;
         return;
     }
 
     // Stuck detection — if barely moving, skip to next waypoint
-    float MovedSq = FVector2D::DistSquared(CurrentPos, m_LastPosition);
-    if (MovedSq < STUCK_MIN_DIST * STUCK_MIN_DIST)
+    float movedSq = FVector2D::DistSquared(currentPos, m_LastPosition);
+    if (movedSq < STUCK_MIN_DIST * STUCK_MIN_DIST)
     {
         m_StuckTimer += DeltaTime;
         if (m_StuckTimer >= STUCK_THRESHOLD)
@@ -52,9 +52,9 @@ namespace GameAI::FSM
     }
     else
     {
-        // Moving fine, reset timer
+        // Moving ìs fine, reset timer
         m_StuckTimer = 0.f;
-        m_LastPosition = CurrentPos;
+        m_LastPosition = currentPos;
     }
 }
 

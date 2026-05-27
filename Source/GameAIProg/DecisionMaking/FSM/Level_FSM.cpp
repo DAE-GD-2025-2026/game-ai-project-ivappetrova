@@ -14,13 +14,11 @@
 #include "Movement/SteeringBehaviors/SteeringAgent.h"
 #include "Movement/SteeringBehaviors/Steering/SteeringBehaviors.h"
 
-
-// Sets default values
 ALevel_FSM::ALevel_FSM()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	PatrolWaypoints = {
+	m_PatrolWaypoints = {
 	FVector2D{ -200.f,  630.f },
 	FVector2D{ -200.f, -340.f },
 	FVector2D{ -650.f, -340.f },
@@ -29,7 +27,6 @@ ALevel_FSM::ALevel_FSM()
 	FVector2D{  800.f,  650.f } };
 }
 
-// Called when the game starts or when spawned
 void ALevel_FSM::BeginPlay()
 {
 	Super::BeginPlay();
@@ -38,33 +35,37 @@ void ALevel_FSM::BeginPlay()
 	SetupGuard();
 }
 
-// Called every frame
 void ALevel_FSM::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
 	// Move thief toward mouse
-	if (Thief && ThiefSeekOwned)
+	if (m_pThief && m_ThiefSeekOwned)
 	{
-		FTargetData MouseTargetData{};
-		MouseTargetData.Position = FVector2D{ LatestMouseWorldPos.X, LatestMouseWorldPos.Y };
-		ThiefSeekOwned->SetTarget(MouseTargetData);
+		FTargetData mouseTargetData{};
+		mouseTargetData.Position = FVector2D{ LatestMouseWorldPos.X, LatestMouseWorldPos.Y };
+		m_ThiefSeekOwned->SetTarget(mouseTargetData);
 	}
 
 	// Update guard's blackboard with THIEF's actual position & velocity (not mouse)
-	if (Guard && Thief)
+	if (m_pGuard && m_pThief)
 	{
-		if (AGameAIController* GuardCtrl = Cast<AGameAIController>(Guard->GetController()))
+		if (IsTargetVisible())
 		{
-			if (UBlackboardComponent* BB = GuardCtrl->GetBlackboardComponent())
-			{
-				FVector2D ThiefPos = Thief->GetPosition();
-				FVector2D ThiefVel = Thief->GetLinearVelocity();
+			m_HasEverChased = true;
+		}
 
-				BB->SetValueAsVector(BB_TARGET_LOCATION,
-					FVector{ ThiefPos.X, ThiefPos.Y, 0.f });
-				BB->SetValueAsVector(TEXT("TargetVelocity"),
-					FVector{ ThiefVel.X, ThiefVel.Y, 0.f });
+		if (AGameAIController* guardController = Cast<AGameAIController>(m_pGuard->GetController()))
+		{
+			if (UBlackboardComponent* pBB = guardController->GetBlackboardComponent())
+			{
+				FVector2D thiefPos = m_pThief->GetPosition();
+				FVector2D thiefVel = m_pThief->GetLinearVelocity();
+
+				pBB->SetValueAsVector(BB_TARGET_LOCATION,
+					FVector{ thiefPos.X, thiefPos.Y, 0.f });
+				pBB->SetValueAsVector(TEXT("TargetVelocity"),
+					FVector{ thiefVel.X, thiefVel.Y, 0.f });
 			}
 		}
 	}
@@ -74,45 +75,55 @@ void ALevel_FSM::Tick(float DeltaTime)
 
 void ALevel_FSM::DrawDebug() const
 {
-	if (!Guard || !GetWorld()) return;
+	if (!m_pGuard || !GetWorld()) return;
 
-	FVector GuardPos3D{ Guard->GetPosition().X, Guard->GetPosition().Y, 90.f };
+	FVector guardPos3D{ m_pGuard->GetPosition().X, m_pGuard->GetPosition().Y, 90.f };
 
 	// Detection radius circle (green = not visible, red = visible)
-	FColor RadiusColor = IsTargetVisible() ? FColor::Red : FColor::Green;
-	DrawDebugCircle(GetWorld(), GuardPos3D, DetectionRadius,
-		64, RadiusColor, false, -1.f, 0, 2.f,
-		FVector(1, 0, 0), FVector(0, 1, 0)); // draw in XY plane
+	FColor radiusColor;
+	if (IsTargetVisible())
+	{
+		radiusColor = FColor::Red;
+	}
+	else if (m_HasEverChased && !IsSearchingTooLong())
+	{
+		radiusColor = FColor::Blue;
+	}
+	else
+	{
+		radiusColor = FColor::Green;
+	}
+	DrawDebugCircle(GetWorld(), guardPos3D, m_DetectionRadius, 64, radiusColor, false, -1.f, 0, 2.f, 
+					FVector(1, 0, 0), FVector(0, 1, 0)); // draw in XY plane
 
 	// Line from guard to thief when chasing
-	if (Thief && IsTargetVisible())
+	if (m_pThief && IsTargetVisible())
 	{
-		FVector ThiefPos3D{ Thief->GetPosition().X, Thief->GetPosition().Y, 90.f };
-		DrawDebugLine(GetWorld(), GuardPos3D, ThiefPos3D, FColor::Orange, false, -1.f, 0, 2.f);
+		FVector thiefPos3D{ m_pThief->GetPosition().X, m_pThief->GetPosition().Y, 90.f };
+		DrawDebugLine(GetWorld(), guardPos3D, thiefPos3D, FColor::Orange, false, -1.f, 0, 2.f);
 	}
 
 	// Patrol waypoints
-	for (int32 i = 0; i < PatrolWaypoints.Num(); ++i)
+	for (size_t index{}; index < m_PatrolWaypoints.Num(); ++index)
 	{
-		FVector WP{ PatrolWaypoints[i].X, PatrolWaypoints[i].Y, 90.f };
+		FVector WP{ m_PatrolWaypoints[index].X, m_PatrolWaypoints[index].Y, 90.f };
 		DrawDebugSphere(GetWorld(), WP, 20.f, 8, FColor::Cyan, false, -1.f, 0, 1.5f);
 
 		// Draw edges of patrol path
-		int32 Next = (i + 1) % PatrolWaypoints.Num();
-		FVector WPNext{ PatrolWaypoints[Next].X, PatrolWaypoints[Next].Y, 90.f };
-		DrawDebugLine(GetWorld(), WP, WPNext, FColor::Cyan, false, -1.f, 0, 1.f);
+		size_t next = (index + 1) % m_PatrolWaypoints.Num();
+		FVector wpNext{ m_PatrolWaypoints[next].X, m_PatrolWaypoints[next].Y, 90.f };
+		DrawDebugLine(GetWorld(), WP, wpNext, FColor::Cyan, false, -1.f, 0, 1.f);
 	}
 
 	// Last known location (yellow dot) — only meaningful during Search
-	if (AGameAIController* GuardCtrl = Cast<AGameAIController>(Guard->GetController()))
+	if (AGameAIController* guardController = Cast<AGameAIController>(m_pGuard->GetController()))
 	{
-		if (UBlackboardComponent* BB = GuardCtrl->GetBlackboardComponent())
+		if (UBlackboardComponent* pBB = guardController->GetBlackboardComponent())
 		{
-			FVector LastKnown = BB->GetValueAsVector(BB_LAST_KNOWN);
-			if (!LastKnown.IsNearlyZero())
+			FVector lastKnown = pBB->GetValueAsVector(BB_LAST_KNOWN);
+			if (!lastKnown.IsNearlyZero())
 			{
-				DrawDebugSphere(GetWorld(), LastKnown + FVector(0, 0, 90.f),
-					25.f, 8, FColor::Yellow, false, -1.f, 0, 2.f);
+				DrawDebugSphere(GetWorld(), lastKnown + FVector(0, 0, 90.f), 25.f, 8, FColor::Yellow, false, -1.f, 0, 2.f);
 			}
 		}
 	}
@@ -121,59 +132,58 @@ void ALevel_FSM::DrawDebug() const
 
 void ALevel_FSM::SetupThief()
 {
-	Thief = GetWorld()->SpawnActor<ASteeringAgent>(SteeringAgentClass, FVector{ 200.f, 0.f, 90.f }, FRotator::ZeroRotator);
-	if (!Thief) return;
+	m_pThief = GetWorld()->SpawnActor<ASteeringAgent>(SteeringAgentClass, FVector{ 200.f, 0.f, 90.f }, FRotator::ZeroRotator);
+	if (!m_pThief) return;
 
-	Thief->SetDebugRenderingEnabled(true);
-	Thief->SetMaxLinearSpeed(Thief->GetMaxLinearSpeed() * 1.5f);
-
-	ThiefSeekOwned = MakeUnique<Seek>();
-	ThiefSeek = ThiefSeekOwned.Get();
-	Thief->SetSteeringBehavior(ThiefSeek);
+	m_pThief->SetDebugRenderingEnabled(true);
+	m_pThief->SetMaxLinearSpeed(m_pThief->GetMaxLinearSpeed() * 1.5f);
+	m_ThiefSeekOwned = MakeUnique<Seek>();
+	m_ThiefSeek = m_ThiefSeekOwned.Get();
+	m_pThief->SetSteeringBehavior(m_ThiefSeek);
 }
 
 void ALevel_FSM::SetupGuard()
 {
-	Guard = GetWorld()->SpawnActor<ASteeringAgent>(SteeringAgentClass, FVector{ 0.f, 0.f, 90.f }, FRotator::ZeroRotator);
-	if (!Guard) return;
+	m_pGuard = GetWorld()->SpawnActor<ASteeringAgent>(SteeringAgentClass, FVector{ 0.f, 0.f, 90.f }, FRotator::ZeroRotator);
+	if (!m_pGuard) return;
 
-	Guard->SetDebugRenderingEnabled(false);
+	m_pGuard->SetDebugRenderingEnabled(false);
 
-	AGameAIController* AIController = Cast<AGameAIController>(Guard->GetController());
-	if (!ensure(AIController)) return;
+	AGameAIController* pAIController = Cast<AGameAIController>(m_pGuard->GetController());
+	if (!ensure(pAIController)) return;
 
-	UFSMComponent* FSMComp = Cast<UFSMComponent>(AIController->GetBrainComponent());
-	if (!ensure(FSMComp)) return;
+	UFSMComponent* pFSMComp = Cast<UFSMComponent>(pAIController->GetBrainComponent());
+	if (!ensure(pFSMComp)) return;
 
-	UBlackboardComponent* BB = AIController->GetBlackboardComponent();
+	UBlackboardComponent* pBB = pAIController->GetBlackboardComponent();
 
 	// Write patrol waypoints into the blackboard
-	WritePatrolWaypointsToBlackboard(BB);
+	WritePatrolWaypointsToBlackboard(pBB);
 
 	// Add states
-	GameAI::FSM::State* Patrol = FSMComp->AddState(std::make_unique<GameAI::FSM::PatrolState>(PatrolWaypoints, 100.f));
-	GameAI::FSM::State* Chase = FSMComp->AddState(std::make_unique<GameAI::FSM::ChaseState>());
-	GameAI::FSM::State* Search = FSMComp->AddState(std::make_unique<GameAI::FSM::SearchState>(120.f));
+	GameAI::FSM::State* pPatrol = pFSMComp->AddState(std::make_unique<GameAI::FSM::PatrolState>(m_PatrolWaypoints, 100.f));
+	GameAI::FSM::State* pChase = pFSMComp->AddState(std::make_unique<GameAI::FSM::ChaseState>());
+	GameAI::FSM::State* pSearch = pFSMComp->AddState(std::make_unique<GameAI::FSM::SearchState>(120.f));
 
 	// Wire transitions
-	FSMComp->AddTransition(Patrol, Chase, [this]() { return IsTargetVisible(); });
-	FSMComp->AddTransition(Chase, Search, [this]() { return IsTargetNotVisible(); });
-	FSMComp->AddTransition(Search, Chase, [this]() { return IsTargetVisible(); });
-	FSMComp->AddTransition(Search, Patrol, [this]() { return IsSearchingTooLong(); });
+	pFSMComp->AddTransition(pPatrol, pChase, [this]() { return IsTargetVisible(); });
+	pFSMComp->AddTransition(pChase, pSearch, [this]() { return IsTargetNotVisible(); });
+	pFSMComp->AddTransition(pSearch, pChase, [this]() { return IsTargetVisible(); });
+	pFSMComp->AddTransition(pSearch, pPatrol, [this]() { return IsSearchingTooLong(); });
 
 	// Start
-	AIController->RunFiniteStateMachine();
+	pAIController->RunFiniteStateMachine();
 }
 
 void ALevel_FSM::WritePatrolWaypointsToBlackboard(UBlackboardComponent* BB) const
 {
 	if (!BB) return;
 
-	BB->SetValueAsInt(TEXT("WP_Count"), PatrolWaypoints.Num());
-	for (int32 i = 0; i < PatrolWaypoints.Num(); ++i)
+	BB->SetValueAsInt(TEXT("WP_Count"), m_PatrolWaypoints.Num());
+	for (size_t index{}; index < m_PatrolWaypoints.Num(); ++index)
 	{
-		FName Key = *FString::Printf(TEXT("WP_%d"), i);
-		BB->SetValueAsVector(Key, FVector{ PatrolWaypoints[i].X, PatrolWaypoints[i].Y, 0.f });
+		FName key = *FString::Printf(TEXT("WP_%d"), index);
+		BB->SetValueAsVector(key, FVector{ m_PatrolWaypoints[index].X, m_PatrolWaypoints[index].Y, 0.f });
 	}
 }
 
@@ -181,20 +191,19 @@ void ALevel_FSM::WritePatrolWaypointsToBlackboard(UBlackboardComponent* BB) cons
 
 bool ALevel_FSM::IsTargetVisible() const
 {
-	if (!Guard || !Thief) return false;
+	if (!m_pGuard || !m_pThief) return false;
 
-	float DistSq = FVector2D::DistSquared(Guard->GetPosition(), Thief->GetPosition());
-	if (DistSq > DetectionRadius * DetectionRadius) return false;
+	float distSq = FVector2D::DistSquared(m_pGuard->GetPosition(), m_pThief->GetPosition());
+	if (distSq > m_DetectionRadius * m_DetectionRadius) return false;
 
-	FHitResult Hit;
-	FVector GuardEye{ Guard->GetPosition().X, Guard->GetPosition().Y, 80.f };
-	FVector ThiefPos{ Thief->GetPosition().X, Thief->GetPosition().Y, 80.f };
+	FHitResult hit;
+	FVector guardEye{ m_pGuard->GetPosition().X, m_pGuard->GetPosition().Y, 80.f };
+	FVector thiefPos{ m_pThief->GetPosition().X, m_pThief->GetPosition().Y, 80.f };
 
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(Guard);
-	Params.AddIgnoredActor(Thief);
-
-	bool bBlocked = GetWorld()->LineTraceSingleByChannel(Hit, GuardEye, ThiefPos, ECC_Visibility, Params);
+	FCollisionQueryParams params;
+	params.AddIgnoredActor(m_pGuard);
+	params.AddIgnoredActor(m_pThief);
+	bool bBlocked = GetWorld()->LineTraceSingleByChannel(hit, guardEye, thiefPos, ECC_Visibility, params);
 	return !bBlocked;
 }
 
@@ -205,17 +214,17 @@ bool ALevel_FSM::IsTargetNotVisible() const
 
 bool ALevel_FSM::IsSearchingTooLong() const
 {
-	if (!Guard) return false;
+	if (!m_pGuard) return false;
 
-	AGameAIController* AIController = Cast<AGameAIController>(Guard->GetController());
-	if (!AIController) return false;
+	AGameAIController* pAIController = Cast<AGameAIController>(m_pGuard->GetController());
+	if (!pAIController) return false;
 
-	UBlackboardComponent* BB = AIController->GetBlackboardComponent();
-	if (!BB) return false;
+	UBlackboardComponent* pBB = pAIController->GetBlackboardComponent();
+	if (!pBB) return false;
 
-	float SearchStart = BB->GetValueAsFloat(BB_SEARCH_START_TIME);
-	float Now = GetWorld()->GetTimeSeconds();
-	return (Now - SearchStart) >= SearchTimeout;
+	float searchStart = pBB->GetValueAsFloat(BB_SEARCH_START_TIME);
+	float now = GetWorld()->GetTimeSeconds();
+	return (now - searchStart) >= m_SearchTimeout;
 }
 
 

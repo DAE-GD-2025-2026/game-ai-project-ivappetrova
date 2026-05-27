@@ -7,7 +7,8 @@ namespace GameAI::FSM
 {
 	SearchState::SearchState(float ArrivalRadius)
 		: m_ArrivalRadius(ArrivalRadius)
-	{}
+	{
+	}
 
 	void SearchState::OnEnter(ASteeringAgent& Agent, UBlackboardComponent* Blackboard)
 	{
@@ -30,16 +31,16 @@ namespace GameAI::FSM
 
 		if (!m_bArrivedAtLastKnown)
 		{
-			//Move to last known location ---
-			FVector LastKnownVec = Blackboard->GetValueAsVector(BB_LAST_KNOWN);
-			FVector2D LastKnown{ LastKnownVec.X, LastKnownVec.Y };
+			//Move to last known location
+			FVector lastKnownVec = Blackboard->GetValueAsVector(BB_LAST_KNOWN);
+			FVector2D lastKnown{ lastKnownVec.X, lastKnownVec.Y };
 
-			FTargetData TargetData{};
-			TargetData.Position = LastKnown;
-			m_Seek.SetTarget(TargetData);
+			FTargetData targetData{};
+			targetData.Position = lastKnown;
+			m_Seek.SetTarget(targetData);
 
-			float DistSq = FVector2D::DistSquared(Agent.GetPosition(), LastKnown);
-			if (DistSq < m_ArrivalRadius * m_ArrivalRadius)
+			float distSq = FVector2D::DistSquared(Agent.GetPosition(), lastKnown);
+			if (distSq < m_ArrivalRadius * m_ArrivalRadius)
 			{
 				m_bArrivedAtLastKnown = true;
 				Agent.SetSteeringBehavior(&m_Wander);

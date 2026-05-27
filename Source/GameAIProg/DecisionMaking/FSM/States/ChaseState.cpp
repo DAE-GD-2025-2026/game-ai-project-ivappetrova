@@ -23,7 +23,6 @@ namespace GameAI::FSM
 		FVector TargetVec = Blackboard->GetValueAsVector(BB_TARGET_LOCATION);
 		FVector2D TargetPos{ TargetVec.X, TargetVec.Y };
 
-		// Keep last known location up to date while we have sight
 		Blackboard->SetValueAsVector(BB_LAST_KNOWN, TargetVec);
 
 		FTargetData TargetData{};

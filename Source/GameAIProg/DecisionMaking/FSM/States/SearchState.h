@@ -2,7 +2,7 @@
 
 #include "../FSM.h"
 #include "Movement/SteeringBehaviors/Steering/SteeringBehaviors.h"
-#include "BlackboardKeys.h"
+#include "DecisionMaking/BlackboardKeys.h"
 
 namespace GameAI::FSM
 {
@@ -20,7 +20,7 @@ namespace GameAI::FSM
 		Seek   m_Seek;
 		Wander m_Wander;
 
-		float m_ArrivalRadius;
+		float m_ArrivalRadius{};
 		bool  m_bArrivedAtLastKnown{ false };
 	};
 }
